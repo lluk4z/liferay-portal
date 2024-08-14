@@ -9,6 +9,7 @@ import {searchTableRowByValue} from './UsersAndOrganizationsPage';
 
 export class EditUserPage {
 	readonly confirmButton: Locator;
+	readonly customField: (fieldName: string) => Promise<Locator>;
 	readonly emailAddressInput: Locator;
 	readonly generateWebDAVPasswordButton: Locator;
 	readonly membershipsAccountsTableRow: (
@@ -48,12 +49,21 @@ export class EditUserPage {
 		value: string,
 		strictEqual?: boolean
 	) => Promise<{column: Locator; row: Locator}>;
-	readonly selectSitesButton: Locator;
-	readonly selectSiteLink: (siteName: string) => Promise<Locator>;
 	readonly webDAVPasswordLabel: Locator;
 	readonly yourPasswordInput: Locator;
 
 	constructor(page: Page) {
+		this.customField = async (fieldName: string) => {
+			await page.getByText('Custom Fields').waitFor({timeout: 15 * 1000});
+
+			const customField = await page.getByText(fieldName);
+
+			if (customField.isVisible()) {
+				return customField;
+			}
+
+			throw new Error(`Cannot locate Custom Field ${fieldName}`);
+		};
 		this.emailAddressInput = page.getByLabel('Email Address');
 		this.generateWebDAVPasswordButton = page.getByTestId(
 			'generateWebDAVPasswordButton'
@@ -161,15 +171,6 @@ export class EditUserPage {
 				strictEqual
 			);
 		};
-		this.selectSitesButton = page.getByRole('button', {
-			exact: true,
-			name: 'Select Sites',
-		});
-		this.selectSiteLink = async (siteName: string) => {
-			return page
-				.frameLocator('iframe[title="Select Site"]')
-				.getByRole('link', {exact: true, name: siteName});
-		};
 		this.webDAVPasswordLabel = page.locator(
 			'#_com_liferay_users_admin_web_portlet_UsersAdminPortlet_webDAVPassword'
 		);
@@ -179,13 +180,5 @@ export class EditUserPage {
 		);
 		this.yourPasswordInput =
 			this.passwordConfirmationFrame.getByLabel('Your Password');
-	}
-
-	async selectUserMembershipSite(site: string) {
-		await this.membershipsLink.click();
-		await this.selectSitesButton.click();
-		(await this.selectSiteLink(site)).click();
-		await this.saveButton.waitFor({state: 'visible'});
-		await this.saveButton.click();
 	}
 }

@@ -10,6 +10,7 @@ import com.liferay.petra.io.unsync.UnsyncStringWriter;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.events.StartupHelperUtil;
 import com.liferay.portal.kernel.dao.db.DB;
 import com.liferay.portal.kernel.dao.db.DBManagerUtil;
 import com.liferay.portal.kernel.dao.jdbc.DataAccess;
@@ -45,7 +46,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -89,6 +89,8 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 		ReflectionTestUtil.setFieldValue(
 			PropsValues.class, "UPGRADE_LOG_CONTEXT_ENABLED",
 			_originalUpgradeLogContextEnabled);
+
+		_restoreRelease();
 	}
 
 	@Before
@@ -103,9 +105,11 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 
 		_logContextAppender.start();
 
+		ReflectionTestUtil.setFieldValue(
+			StartupHelperUtil.class, "_newRelease", true);
+
 		_updatePortalRelease(
-			new Version(1, 0, 0), new Date(0),
-			ReleaseInfo.RELEASE_7_1_0_BUILD_NUMBER);
+			new Version(1, 0, 0), ReleaseInfo.RELEASE_7_1_0_BUILD_NUMBER);
 
 		_upgradeReportLogger = (Logger)LogManager.getLogger(
 			"com.liferay.portal.upgrade.internal.report.UpgradeReport");
@@ -137,10 +141,6 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 
 			reportsDir.delete();
 		}
-
-		_updatePortalRelease(
-			PortalUpgradeProcess.getLatestSchemaVersion(),
-			ReleaseInfo.getBuildDate(), ReleaseInfo.getBuildNumber());
 
 		_upgradeReportLogger.removeAppender(_logContextAppender);
 
@@ -223,9 +223,8 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 
 	@Test
 	public void testDatabaseTablesEmpty() throws Exception {
-		_updatePortalRelease(
-			new Version(1, 0, 0), ReleaseInfo.getBuildDate(),
-			ReleaseInfo.RELEASE_7_1_0_BUILD_NUMBER);
+		ReflectionTestUtil.setFieldValue(
+			StartupHelperUtil.class, "_newRelease", false);
 
 		_appender.start();
 
@@ -465,9 +464,7 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 
 	@Test
 	public void testNoUpgrade() throws Exception {
-		_updatePortalRelease(
-			PortalUpgradeProcess.getLatestSchemaVersion(),
-			ReleaseInfo.getBuildDate(), ReleaseInfo.getBuildNumber());
+		_restoreRelease();
 
 		_appender.start();
 
@@ -551,9 +548,7 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 	public void testSchemaVersion() throws Exception {
 		_appender.start();
 
-		_updatePortalRelease(
-			PortalUpgradeProcess.getLatestSchemaVersion(),
-			ReleaseInfo.getBuildDate(), ReleaseInfo.getBuildNumber());
+		_restoreRelease();
 
 		_appender.stop();
 
@@ -632,6 +627,9 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 		_db.runSQL(
 			"create table UpgradeReportTable2 (id_ LONG not null primary key)");
 
+		_originalNewRelease = ReflectionTestUtil.getFieldValue(
+			StartupHelperUtil.class, "_newRelease");
+
 		_originalUpgradeClient = ReflectionTestUtil.getAndSetFieldValue(
 			DBUpgrader.class, "_upgradeClient", upgradeClient);
 
@@ -641,6 +639,37 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 	}
 
 	protected abstract String getFilePath();
+
+	private static void _restoreRelease() throws Exception {
+		ReflectionTestUtil.setFieldValue(
+			StartupHelperUtil.class, "_newRelease", _originalNewRelease);
+
+		_updatePortalRelease(
+			PortalUpgradeProcess.getLatestSchemaVersion(),
+			ReleaseInfo.getBuildNumber());
+	}
+
+	private static void _updatePortalRelease(
+			Version schemaVersion, int buildNumber)
+		throws Exception {
+
+		try (Connection connection = DataAccess.getConnection();
+			PreparedStatement preparedStatement = connection.prepareStatement(
+				"update Release_ set schemaVersion = ?, buildNumber = ? " +
+					"where releaseId = ?")) {
+
+			preparedStatement.setString(1, schemaVersion.toString());
+			preparedStatement.setInt(2, buildNumber);
+			preparedStatement.setLong(3, ReleaseConstants.DEFAULT_ID);
+
+			preparedStatement.executeUpdate();
+		}
+
+		DCLSingleton<?> dclSingleton = ReflectionTestUtil.getFieldValue(
+			PortalUpgradeProcess.class, "_currentPortalReleaseDTODCLSingleton");
+
+		dclSingleton.destroy(null);
+	}
 
 	private void _assertLogContextContains(String key, String text) {
 		Assert.assertTrue(
@@ -756,34 +785,11 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 			originalUpgradeReportDLStorageSizeTimeout);
 	}
 
-	private void _updatePortalRelease(
-			Version schemaVersion, Date buildDate, int buildNumber)
-		throws Exception {
-
-		try (Connection connection = DataAccess.getConnection();
-			PreparedStatement preparedStatement = connection.prepareStatement(
-				"update Release_ set schemaVersion = ?, buildDate = ?, " +
-					"buildNumber = ? where releaseId = ?")) {
-
-			preparedStatement.setString(1, schemaVersion.toString());
-			preparedStatement.setDate(
-				2, new java.sql.Date(buildDate.getTime()));
-			preparedStatement.setInt(3, buildNumber);
-			preparedStatement.setLong(4, ReleaseConstants.DEFAULT_ID);
-
-			preparedStatement.executeUpdate();
-		}
-
-		DCLSingleton<?> dclSingleton = ReflectionTestUtil.getFieldValue(
-			PortalUpgradeProcess.class, "_currentPortalReleaseDTODCLSingleton");
-
-		dclSingleton.destroy(null);
-	}
-
 	private static DB _db;
 	private static Appender _logContextAppender;
 	private static final Pattern _logContextTablesInitialFinalRowsPattern =
 		Pattern.compile("(\\w+_?):(\\d+|-):(\\d+|-)");
+	private static boolean _originalNewRelease;
 	private static boolean _originalUpgradeClient;
 	private static boolean _originalUpgradeLogContextEnabled;
 	private static final Pattern _pattern = Pattern.compile(

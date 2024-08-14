@@ -22,7 +22,6 @@ import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.db.DB;
 import com.liferay.portal.kernel.dao.db.DBManagerUtil;
 import com.liferay.portal.kernel.dao.db.IndexMetadata;
-import com.liferay.portal.kernel.instance.PortalInstancePool;
 import com.liferay.portal.kernel.util.InfrastructureUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
@@ -41,7 +40,8 @@ import javax.sql.DataSource;
  */
 public class ObjectSQLProvider implements SQLProvider {
 
-	public ObjectSQLProvider(DB db) throws Exception {
+	public ObjectSQLProvider(long companyId, DB db) throws Exception {
+		_companyId = companyId;
 		_db = db;
 
 		_appendSQL();
@@ -121,13 +121,16 @@ public class ObjectSQLProvider implements SQLProvider {
 	private void _appendSQL() throws Exception {
 		List<ObjectDefinition> objectDefinitions =
 			ObjectDefinitionLocalServiceUtil.getObjectDefinitions(
-				PortalInstancePool.getDefaultCompanyId(),
-				WorkflowConstants.STATUS_APPROVED);
+				_companyId, WorkflowConstants.STATUS_APPROVED);
 
 		for (ObjectDefinition objectDefinition : objectDefinitions) {
 			_appendTablesSQL(objectDefinition);
 
 			_appendRelationshipTablesSQL(objectDefinition);
+		}
+
+		if (_tablesSQLSB.index() > 0) {
+			_tablesSQLSB.setIndex(_tablesSQLSB.index() - 1);
 		}
 
 		_appendIndexesSQL();
@@ -175,6 +178,7 @@ public class ObjectSQLProvider implements SQLProvider {
 			dynamicObjectDefinitionTable.getTableName());
 	}
 
+	private final long _companyId;
 	private final DB _db;
 	private final StringBundler _indexesSQLSB = new StringBundler();
 	private final Set<String> _tableNames = new HashSet<>();

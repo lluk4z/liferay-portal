@@ -6,30 +6,26 @@
 import {checkConfigFileNames} from './checkConfigFileNames.mjs';
 import {checkNodeScriptsHash} from './checkNodeScriptsHash.mjs';
 import {checkPackageJSONFiles} from './checkPackageJSONFiles.mjs';
-import {checkTsc} from './checkTsc.mjs';
 import {checkYarnLock} from './checkYarnLock.mjs';
 
 /**
- * Runs the "preflight" checks (basically everything that is not already covered
- * by Prettier or ESLint).
+ * Run "lightweight" global checks not implemented by ESLint or Prettier.
+ *
+ * Since preflight checks are global and there are not switches to choose subsets of things to
+ * check, they must not take a long time to run.
+ *
+ * Any long check (eg: TypeScript) must be moved to its own command and invoked explicitly from the
+ * outer layer.
+ *
+ * @returns string[] An array with strings containing error messages (or empty on no errors).
  */
-export default async function runPreflight({all}) {
+export default async function runPreflight() {
 	const results = await Promise.all([
 		checkConfigFileNames(),
-		checkPackageJSONFiles(all),
+		checkPackageJSONFiles(),
 		checkYarnLock(),
-		checkTsc(all),
 		checkNodeScriptsHash(),
 	]);
 
-	const errors = results.flat();
-
-	if (errors.length) {
-		console.error(`
-❌ Preflight check failed:
-${errors.map((error) => `   · ${error}`).join('\n')}
-`);
-
-		throw new Error();
-	}
+	return results.flat();
 }

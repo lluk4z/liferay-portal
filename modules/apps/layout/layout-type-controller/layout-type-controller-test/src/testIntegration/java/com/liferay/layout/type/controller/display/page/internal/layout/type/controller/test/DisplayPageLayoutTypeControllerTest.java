@@ -123,32 +123,15 @@ public class DisplayPageLayoutTypeControllerTest {
 
 	@Test
 	public void testDisplayPageTypeControllerGetFriendlyURL() throws Exception {
-		LayoutTypeController layoutTypeController =
-			LayoutTypeControllerTracker.getLayoutTypeController(
-				LayoutConstants.TYPE_ASSET_DISPLAY);
+		_assertDisplayPageTypeControllerGetFriendlyURL(StringPool.BLANK);
+	}
 
-		LayoutPageTemplateEntry layoutPageTemplateEntry =
-			_layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
-				null, _group.getGroupId(), 0,
-				_portal.getClassNameId(AssetCategory.class.getName()), 0,
-				RandomTestUtil.randomString(), 0,
-				WorkflowConstants.STATUS_DRAFT, _serviceContext);
+	@Test
+	public void testDisplayPageTypeControllerGetFriendlyURLWithLocale()
+		throws Exception {
 
-		Layout layout = _layoutLocalService.getLayout(
-			layoutPageTemplateEntry.getPlid());
-
-		MockHttpServletRequest mockHttpServletRequest =
-			new MockHttpServletRequest();
-
-		mockHttpServletRequest.setAttribute(
-			WebKeys.CURRENT_URL, "/c/portal/comment/discussion/get_comments");
-
-		Assert.assertNull(
-			layoutTypeController.getFriendlyURL(
-				mockHttpServletRequest, layout));
-		Assert.assertNull(
-			layoutTypeController.getFriendlyURL(
-				mockHttpServletRequest, layout.fetchDraftLayout()));
+		_assertDisplayPageTypeControllerGetFriendlyURL(
+			LocaleUtil.toLanguageId(LocaleUtil.getSiteDefault()));
 	}
 
 	@Test
@@ -396,6 +379,45 @@ public class DisplayPageLayoutTypeControllerTest {
 				layout.getPlid()));
 	}
 
+	private void _assertDisplayPageTypeControllerGetFriendlyURL(
+			String languageId)
+		throws Exception {
+
+		LayoutTypeController layoutTypeController =
+			LayoutTypeControllerTracker.getLayoutTypeController(
+				LayoutConstants.TYPE_ASSET_DISPLAY);
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			_layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
+				null, _group.getGroupId(), 0,
+				_portal.getClassNameId(AssetCategory.class.getName()), 0,
+				RandomTestUtil.randomString(), 0,
+				WorkflowConstants.STATUS_DRAFT, _serviceContext);
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutPageTemplateEntry.getPlid());
+
+		MockHttpServletRequest mockHttpServletRequest =
+			new MockHttpServletRequest();
+
+		ThemeDisplay themeDisplay = _getThemeDisplay(
+			languageId, mockHttpServletRequest, TestPropsValues.getUser());
+
+		mockHttpServletRequest.setAttribute(
+			WebKeys.CURRENT_URL,
+			themeDisplay.getPathMain() +
+				"/portal/comment/discussion/get_comments");
+		mockHttpServletRequest.setAttribute(
+			WebKeys.THEME_DISPLAY, themeDisplay);
+
+		Assert.assertNull(
+			layoutTypeController.getFriendlyURL(
+				mockHttpServletRequest, layout));
+		Assert.assertNull(
+			layoutTypeController.getFriendlyURL(
+				mockHttpServletRequest, layout.fetchDraftLayout()));
+	}
+
 	private void _assertIncludeLayoutContent(
 			boolean noSuchLayoutExceptionExpected, long plid, User user)
 		throws Exception {
@@ -451,7 +473,7 @@ public class DisplayPageLayoutTypeControllerTest {
 
 		mockHttpServletRequest.setAttribute(
 			WebKeys.THEME_DISPLAY,
-			_getThemeDisplay(user, mockHttpServletRequest));
+			_getThemeDisplay(StringPool.BLANK, mockHttpServletRequest, user));
 
 		if (Validator.isNotNull(layoutMode)) {
 			mockHttpServletRequest.setParameter("p_l_mode", layoutMode);
@@ -521,7 +543,8 @@ public class DisplayPageLayoutTypeControllerTest {
 	}
 
 	private ThemeDisplay _getThemeDisplay(
-			User user, HttpServletRequest mockHttpServletRequest)
+			String i18nPath, HttpServletRequest mockHttpServletRequest,
+			User user)
 		throws Exception {
 
 		ThemeDisplay themeDisplay = new ThemeDisplay();
@@ -537,6 +560,7 @@ public class DisplayPageLayoutTypeControllerTest {
 			_layoutSetLocalService.getLayoutSet(_group.getGroupId(), false));
 		themeDisplay.setLocale(
 			LocaleUtil.fromLanguageId(_group.getDefaultLanguageId()));
+		themeDisplay.setPathMain(i18nPath.concat(_portal.getPathMain()));
 		themeDisplay.setPermissionChecker(
 			PermissionCheckerFactoryUtil.create(user));
 		themeDisplay.setPortalDomain(company.getVirtualHostname());

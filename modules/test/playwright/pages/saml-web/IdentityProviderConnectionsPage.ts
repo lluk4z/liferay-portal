@@ -5,10 +5,21 @@
 
 import {Locator, Page, expect} from '@playwright/test';
 
+import {TIdpConnection} from '../../helpers/SamlProviderConnectionHelper';
 import {clickAndExpectToBeVisible} from '../../utils/clickAndExpectToBeVisible';
 import {ApplicationsMenuPage} from '../product-navigation-applications-menu/ApplicationsMenuPage';
 
+export interface AttributeMapping {
+	attributeMappingType:
+		| 'Basic User Fields'
+		| 'User Custom Fields'
+		| 'User Memberships';
+	samlAttribute: string;
+	userFieldExpression: string;
+}
+
 export class IdentityProviderConnectionsPage {
+	readonly basicUserFields: Locator;
 	readonly applicationsMenuPage: ApplicationsMenuPage;
 	readonly clockSkewField: Locator;
 	readonly enabledField: Locator;
@@ -22,9 +33,12 @@ export class IdentityProviderConnectionsPage {
 	readonly saveButton: Locator;
 	readonly successMessage: Locator;
 	readonly unknownUsersAreStrangersToggle: Locator;
+	readonly userCustomFields: Locator;
+	readonly userMembershipsFields: Locator;
 
 	constructor(page: Page) {
 		this.applicationsMenuPage = new ApplicationsMenuPage(page);
+		this.basicUserFields = page.getByText('Basic User Fields');
 		this.clockSkewField = page.getByLabel('Clock Skew');
 		this.enabledField = page.getByText('Enabled', {exact: true});
 		this.entityIdField = page.getByLabel('Entity ID');
@@ -47,19 +61,11 @@ export class IdentityProviderConnectionsPage {
 		this.unknownUsersAreStrangersToggle = page.getByText(
 			'Unknown Users Are Strangers'
 		);
+		this.userCustomFields = page.getByText('User Custom Fields');
+		this.userMembershipsFields = page.getByText('User Memberships');
 	}
 
-	async addIdentityProviderConnection(
-		metadataURL: string,
-		name: string,
-		clockSkew?: string,
-		enabled = true,
-		entityId = name,
-		forceAuthn?: boolean,
-		keepAliveUrl?: string,
-		nameIdentifierFormat?: string,
-		unknownUsersAreStrangers?: boolean
-	) {
+	async addIdentityProviderConnection(idpConnection: TIdpConnection) {
 		await this.goToIdentityProviderConnectionsTab();
 
 		await this.page
@@ -67,15 +73,7 @@ export class IdentityProviderConnectionsPage {
 			.click();
 
 		await this.populateAndSaveIdentityProviderConnectionDetails(
-			name,
-			clockSkew,
-			enabled,
-			entityId,
-			forceAuthn,
-			keepAliveUrl,
-			metadataURL,
-			nameIdentifierFormat,
-			unknownUsersAreStrangers
+			idpConnection
 		);
 	}
 
@@ -97,20 +95,12 @@ export class IdentityProviderConnectionsPage {
 		expect(await this.successMessage).toBeVisible();
 	}
 
-	async editIdentityProviderConnection(
-		name: string,
-		clockSkew?: string,
-		enabled?: boolean,
-		entityId?: string,
-		forceAuthn?: boolean,
-		keepAliveUrl?: string,
-		metadataURL?: string,
-		nameIdentifierFormat?: string,
-		unknownUsersAreStrangers?: boolean
-	) {
+	async editIdentityProviderConnection(idpConnection: TIdpConnection) {
 		await this.goToIdentityProviderConnectionsTab();
 
-		const row = await this.page.getByRole('row').filter({hasText: name});
+		const row = await this.page.getByRole('row').filter({
+			hasText: idpConnection.idpName,
+		});
 
 		await clickAndExpectToBeVisible({
 			autoClick: true,
@@ -119,15 +109,7 @@ export class IdentityProviderConnectionsPage {
 		});
 
 		await this.populateAndSaveIdentityProviderConnectionDetails(
-			name,
-			clockSkew,
-			enabled,
-			entityId,
-			forceAuthn,
-			keepAliveUrl,
-			metadataURL,
-			nameIdentifierFormat,
-			unknownUsersAreStrangers
+			idpConnection
 		);
 	}
 
@@ -142,51 +124,68 @@ export class IdentityProviderConnectionsPage {
 	}
 
 	private async populateAndSaveIdentityProviderConnectionDetails(
-		name: string,
-		clockSkew?: string,
-		enabled?: boolean,
-		entityId?: string,
-		forceAuthn?: boolean,
-		keepAliveUrl?: string,
-		metadataURL?: string,
-		nameIdentifierFormat?: string,
-		unknownUsersAreStrangers?: boolean
+		idpConnection: TIdpConnection
 	) {
-		await this.nameField.fill(name);
+		await this.nameField.fill(idpConnection.idpName);
 
-		if (clockSkew) {
-			await this.clockSkewField.fill(clockSkew);
+		if (idpConnection.attributeMappings) {
+			for (const attributeMapping of idpConnection.attributeMappings) {
+				const attributeMappingLocator = this.page.getByText(
+					`${attributeMapping.attributeMappingType} Undo`
+				);
+
+				// Always add a new row so we don't overwrite existing entries
+
+				await attributeMappingLocator
+					.getByRole('button', {name: 'Add'})
+					.last()
+					.click();
+
+				await attributeMappingLocator
+					.getByText('SAML Attribute')
+					.last()
+					.fill(attributeMapping.samlAttribute);
+
+				await attributeMappingLocator
+					.getByText('User Field Expression')
+					.last()
+					.selectOption(attributeMapping.userFieldExpression);
+			}
 		}
 
-		if (enabled !== undefined) {
-			await this.enabledField.setChecked(enabled);
+		if (idpConnection.clockSkew) {
+			await this.clockSkewField.fill(idpConnection.clockSkew);
 		}
 
-		if (entityId) {
-			await this.entityIdField.fill(entityId);
+		if (idpConnection.enabled !== undefined) {
+			await this.enabledField.setChecked(idpConnection.enabled);
 		}
 
-		if (forceAuthn !== undefined) {
-			await this.forceAuthnToggle.setChecked(forceAuthn);
+		if (idpConnection.entityId) {
+			await this.entityIdField.fill(idpConnection.entityId);
 		}
 
-		if (keepAliveUrl) {
-			await this.keepAliveUrlField.fill(keepAliveUrl);
+		if (idpConnection.forceAuthn !== undefined) {
+			await this.forceAuthnToggle.setChecked(idpConnection.forceAuthn);
 		}
 
-		if (metadataURL) {
-			await this.metadataUrlField.fill(metadataURL);
+		if (idpConnection.keepAliveUrl) {
+			await this.keepAliveUrlField.fill(idpConnection.keepAliveUrl);
 		}
 
-		if (nameIdentifierFormat) {
+		if (idpConnection.metadataURL) {
+			await this.metadataUrlField.fill(idpConnection.metadataURL);
+		}
+
+		if (idpConnection.nameIdentifierFormat) {
 			await this.nameIdentifierFormatField.selectOption(
-				nameIdentifierFormat
+				idpConnection.nameIdentifierFormat
 			);
 		}
 
-		if (unknownUsersAreStrangers !== undefined) {
+		if (idpConnection.unknownUsersAreStrangers !== undefined) {
 			await this.unknownUsersAreStrangersToggle.setChecked(
-				unknownUsersAreStrangers
+				idpConnection.unknownUsersAreStrangers
 			);
 		}
 

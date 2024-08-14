@@ -50,12 +50,14 @@ public class JUnitBatchBuildTestrayCaseResult
 	public long getDuration() {
 		List<TestClassResult> testClassResults = _getTestClassResults();
 
+		if (testClassResults == null) {
+			return 0;
+		}
+
 		long duration = 0;
 
-		if (testClassResults != null) {
-			for (TestClassResult testClassResult : testClassResults) {
-				duration += testClassResult.getDuration();
-			}
+		for (TestClassResult testClassResult : testClassResults) {
+			duration += testClassResult.getDuration();
 		}
 
 		return duration;

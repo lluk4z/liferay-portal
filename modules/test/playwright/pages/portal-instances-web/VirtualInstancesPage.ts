@@ -99,8 +99,12 @@ export class VirtualInstancesPage {
 			trigger: row.getByRole('button', {name: 'Show Actions'}),
 		});
 
-		await this.page.waitForTimeout(1000);
+		await this.page.getByRole('button', {name: 'Delete'}).waitFor();
 
 		await this.page.getByRole('button', {name: 'Delete'}).click();
+	}
+
+	async goto() {
+		await this.applicationsMenuPage.goToVirtualInstances();
 	}
 }

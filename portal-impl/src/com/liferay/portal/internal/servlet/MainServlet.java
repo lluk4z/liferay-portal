@@ -383,7 +383,7 @@ public class MainServlet extends HttpServlet {
 		}
 
 		if (DBUpgrader.isUpgradeDatabaseAutoRunEnabled()) {
-			DBUpgrader.upgradeModules(true);
+			DBUpgrader.upgradeModules();
 
 			StartupHelperUtil.setUpgrading(false);
 		}
@@ -1009,7 +1009,7 @@ public class MainServlet extends HttpServlet {
 				(user.getLastLoginDate() == null)) {
 
 				user = UserLocalServiceUtil.updateLastLogin(
-					userId, httpServletRequest.getRemoteAddr());
+					user, httpServletRequest.getRemoteAddr());
 			}
 		}
 

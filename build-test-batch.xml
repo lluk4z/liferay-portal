@@ -4422,46 +4422,6 @@ information. Make sure to commit in all format-javadoc results.
 		/>
 	</target>
 
-	<target name="functional-bundle-tomcat-mysql57-jdk11_oracle">
-		<set-tomcat-version-number liferay.portal.bundle="${test.portal.bundle.version}" />
-
-		<run-functional-test
-			app.server.type="tomcat"
-			database.type="mysql"
-			database.version="5.7"
-			setup.proxy="false"
-			test.build.fix.pack.zip.url="${test.build.fix.pack.zip.url}"
-			test.fix.pack.base.url="${test.fix.pack.base.url}"
-			test.license.xml.url="${test.license.xml.url}"
-			test.plugin.zip.url="${test.plugin.zip.url}"
-			test.plugins.war.zip.url="${test.plugins.war.zip.url}"
-			test.portal.bundle.version="${test.portal.bundle.version}"
-			test.portal.bundle.zip.url="${test.portal.bundle.zip.url}"
-			test.portal.lpkg.name="${test.portal.lpkg.name}"
-			test.sql.zip.url="${test.sql.zip.url}"
-		/>
-	</target>
-
-	<target name="functional-bundle-tomcat-mysql57-jdk11_zulu">
-		<set-tomcat-version-number liferay.portal.bundle="${test.portal.bundle.version}" />
-
-		<run-functional-test
-			app.server.type="tomcat"
-			database.type="mysql"
-			database.version="5.7"
-			setup.proxy="false"
-			test.build.fix.pack.zip.url="${test.build.fix.pack.zip.url}"
-			test.fix.pack.base.url="${test.fix.pack.base.url}"
-			test.license.xml.url="${test.license.xml.url}"
-			test.plugin.zip.url="${test.plugin.zip.url}"
-			test.plugins.war.zip.url="${test.plugins.war.zip.url}"
-			test.portal.bundle.version="${test.portal.bundle.version}"
-			test.portal.bundle.zip.url="${test.portal.bundle.zip.url}"
-			test.portal.lpkg.name="${test.portal.lpkg.name}"
-			test.sql.zip.url="${test.sql.zip.url}"
-		/>
-	</target>
-
 	<target name="functional-bundle-tomcat-mysql57-jdk17_open">
 		<set-tomcat-version-number liferay.portal.bundle="${test.portal.bundle.version}" />
 
@@ -7173,6 +7133,36 @@ information. Make sure to commit in all format-javadoc results.
 		</antcall>
 	</target>
 
+	<target name="modules-integration-project-templates-jdk17_open">
+		<get-java-jdk-home type="open" version="17" />
+
+		<echo append="true" file="build.${user.name}.properties">
+			junit.jvm.override=${java.jdk.home}/bin/java
+			junit.jvm.override.version=17</echo>
+
+		<antcall target="modules-unit-jdk8">
+			<param name="junit.jvm.override" value="${java.jdk.home}/bin/java" />
+			<param name="junit.jvm.override.version" value="17" />
+			<param name="project.templates.test" value="true" />
+			<param name="project.templates.test.builds" value="true" />
+		</antcall>
+	</target>
+
+	<target name="modules-integration-project-templates-jdk21_zulu">
+		<get-java-jdk-home type="zulu" version="21" />
+
+		<echo append="true" file="build.${user.name}.properties">
+			junit.jvm.override=${java.jdk.home}/bin/java
+			junit.jvm.override.version=21</echo>
+
+		<antcall target="modules-unit-jdk8">
+			<param name="junit.jvm.override" value="${java.jdk.home}/bin/java" />
+			<param name="junit.jvm.override.version" value="21" />
+			<param name="project.templates.test" value="true" />
+			<param name="project.templates.test.builds" value="true" />
+		</antcall>
+	</target>
+
 	<target name="modules-integration-sqlserver2017-jdk8">
 		<run-modules-integration-test database.type="sqlserver" database.version="2017" />
 	</target>
@@ -7395,6 +7385,36 @@ junit.jvm.override.version=21</echo>
 
 	<target name="modules-unit-project-templates-jdk8">
 		<antcall target="modules-unit-jdk8">
+			<param name="project.templates.test" value="true" />
+			<param name="project.templates.test.builds" value="false" />
+		</antcall>
+	</target>
+
+	<target name="modules-unit-project-templates-jdk17_open">
+		<get-java-jdk-home type="open" version="17" />
+
+		<echo append="true" file="build.${user.name}.properties">
+			junit.jvm.override=${java.jdk.home}/bin/java
+			junit.jvm.override.version=17</echo>
+
+		<antcall target="modules-unit-jdk8">
+			<param name="junit.jvm.override" value="${java.jdk.home}/bin/java" />
+			<param name="junit.jvm.override.version" value="17" />
+			<param name="project.templates.test" value="true" />
+			<param name="project.templates.test.builds" value="false" />
+		</antcall>
+	</target>
+
+	<target name="modules-unit-project-templates-jdk21_zulu">
+		<get-java-jdk-home type="zulu" version="21" />
+
+		<echo append="true" file="build.${user.name}.properties">
+			junit.jvm.override=${java.jdk.home}/bin/java
+			junit.jvm.override.version=21</echo>
+
+		<antcall target="modules-unit-jdk8">
+			<param name="junit.jvm.override" value="${java.jdk.home}/bin/java" />
+			<param name="junit.jvm.override.version" value="21" />
 			<param name="project.templates.test" value="true" />
 			<param name="project.templates.test.builds" value="false" />
 		</antcall>

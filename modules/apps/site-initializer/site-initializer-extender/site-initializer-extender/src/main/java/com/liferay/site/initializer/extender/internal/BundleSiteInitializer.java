@@ -493,9 +493,13 @@ public class BundleSiteInitializer implements SiteInitializer {
 		}
 
 		if (ThreadLocalFilterThreadLocal.isFilterInvoked()) {
-			Set<Long> initializedGroupIds = _initializedGroupIds.get();
+			Set<String> initializedGroupIdAndKeys =
+				_initializedGroupIdAndKeys.get();
 
-			if (!initializedGroupIds.add(groupId)) {
+			if (!initializedGroupIdAndKeys.add(
+					StringBundler.concat(
+						groupId, StringPool.POUND, getKey()))) {
+
 				if (_log.isDebugEnabled()) {
 					_log.debug(
 						StringBundler.concat(
@@ -5894,9 +5898,9 @@ public class BundleSiteInitializer implements SiteInitializer {
 	private static final Snapshot<CommerceSiteInitializer>
 		_commerceSiteInitializerSnapshot = new Snapshot<>(
 			BundleSiteInitializer.class, CommerceSiteInitializer.class);
-	private static final ThreadLocal<Set<Long>> _initializedGroupIds =
+	private static final ThreadLocal<Set<String>> _initializedGroupIdAndKeys =
 		new CentralizedThreadLocal<>(
-			BundleSiteInitializer.class + "._initializedGroupIds",
+			BundleSiteInitializer.class + "._initializedGroupIdAndKeys",
 			HashSet::new);
 	private static final ObjectMapper _objectMapper = new ObjectMapper();
 	private static final Snapshot<OSBSiteInitializer>

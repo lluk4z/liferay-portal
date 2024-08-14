@@ -45,7 +45,7 @@ export default function TopperItemActions({disabled, item}) {
 	const isInputFragment =
 		item.type === LAYOUT_DATA_ITEM_TYPES.fragment &&
 		fragmentEntryLinks[item.config.fragmentEntryLinkId]
-			.fragmentEntryType === FRAGMENT_ENTRY_TYPES.input;
+			?.fragmentEntryType === FRAGMENT_ENTRY_TYPES.input;
 
 	const dropdownItems = useMemo(() => {
 		const items = [];
@@ -158,6 +158,7 @@ export default function TopperItemActions({disabled, item}) {
 						aria-label={Liferay.Language.get('options')}
 						disabled={disabled}
 						displayType="unstyled"
+						onClick={(event) => event.stopPropagation()}
 						size="sm"
 						title={Liferay.Language.get('options')}
 					>
@@ -177,7 +178,9 @@ export default function TopperItemActions({disabled, item}) {
 						) : (
 							<React.Fragment key={index}>
 								<ClayDropDown.Item
-									onClick={() => {
+									onClick={(event) => {
+										event.stopPropagation();
+
 										setActive(false);
 
 										dropdownItem.action();

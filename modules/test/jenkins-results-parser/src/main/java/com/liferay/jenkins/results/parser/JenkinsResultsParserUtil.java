@@ -1710,7 +1710,7 @@ public class JenkinsResultsParserUtil {
 	}
 
 	public static long getCurrentTimeMillis() {
-		if (!isCINode()) {
+		if (!isCINode() || isJenkinsMaster()) {
 			return System.currentTimeMillis();
 		}
 
@@ -2234,8 +2234,6 @@ public class JenkinsResultsParserUtil {
 			getCanonicalPath(rootDir) + File.separator,
 			resourceIncludesRelativeGlobs);
 
-		final List<URL> includedResourceURLs = new ArrayList<>();
-
 		Path rootDirPath = rootDir.toPath();
 
 		if (!Files.exists(rootDirPath)) {
@@ -2243,8 +2241,10 @@ public class JenkinsResultsParserUtil {
 				combine(
 					"Directory ", rootDirPath.toString(), " does not exist."));
 
-			return includedResourceURLs;
+			return Collections.emptyList();
 		}
+
+		final List<URL> includedResourceURLs = new ArrayList<>();
 
 		Files.walkFileTree(
 			rootDirPath,
@@ -3610,6 +3610,17 @@ public class JenkinsResultsParserUtil {
 		}
 
 		return false;
+	}
+
+	public static boolean isJenkinsMaster() {
+		try {
+			JenkinsMaster.getInstance(getHostName(null));
+		}
+		catch (Exception exception) {
+			return false;
+		}
+
+		return true;
 	}
 
 	public static boolean isJenkinsSlaveInNetwork(

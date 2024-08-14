@@ -8,7 +8,13 @@ package com.liferay.portal.security.service.access.policy.internal.upgrade.v3_0_
 import com.liferay.counter.kernel.service.CounterLocalServiceUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.model.ResourceConstants;
+import com.liferay.portal.kernel.model.Role;
+import com.liferay.portal.kernel.model.role.RoleConstants;
+import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalServiceUtil;
+import com.liferay.portal.kernel.service.RoleLocalServiceUtil;
 import com.liferay.portal.kernel.service.UserLocalServiceUtil;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.kernel.upgrade.util.UpgradeProcessUtil;
@@ -16,6 +22,7 @@ import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.LocalizationUtil;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
+import com.liferay.portal.security.service.access.policy.model.SAPEntry;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -59,8 +66,11 @@ public class SAPEntryUpgradeProcess extends UpgradeProcess {
 						connection.prepareStatement(sb.toString());
 
 					preparedStatement2.setString(1, PortalUUIDUtil.generate());
-					preparedStatement2.setLong(
-						2, CounterLocalServiceUtil.increment());
+
+					long sapEntryId = CounterLocalServiceUtil.increment();
+
+					preparedStatement2.setLong(2, sapEntryId);
+
 					preparedStatement2.setLong(3, companyId);
 					preparedStatement2.setLong(
 						4, UserLocalServiceUtil.getGuestUserId(companyId));
@@ -95,6 +105,15 @@ public class SAPEntryUpgradeProcess extends UpgradeProcess {
 								companyId)));
 
 					preparedStatement2.execute();
+
+					Role guestRole = RoleLocalServiceUtil.getRole(
+						companyId, RoleConstants.GUEST);
+
+					ResourcePermissionLocalServiceUtil.setResourcePermissions(
+						companyId, SAPEntry.class.getName(),
+						ResourceConstants.SCOPE_INDIVIDUAL,
+						String.valueOf(sapEntryId), guestRole.getRoleId(),
+						new String[] {ActionKeys.VIEW});
 				}
 			});
 	}

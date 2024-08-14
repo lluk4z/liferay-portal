@@ -307,10 +307,7 @@ test('LPD-4174 Sales agent can receive email notifications for new orders placed
 			'Sales agent can receive email notifications'
 		);
 
-		const orders =
-			await apiHelpers.headlessCommerceAdminOrder.getOrdersPage();
-
-		apiHelpers.data.push({id: orders.items[0].id, type: 'order'});
+		await apiHelpers.objectAdmin.deleteObjectAction(objectAction.id);
 
 		const notificationQueueEntry =
 			await apiHelpers.notification.getNotificationQueueEntriesPage(
@@ -321,8 +318,6 @@ test('LPD-4174 Sales agent can receive email notifications for new orders placed
 			notificationQueueEntry.items[0].id
 		);
 
-		await apiHelpers.objectAdmin.deleteObjectAction(objectAction.id);
-
 		await apiHelpers.notification.deleteNotificationTemplate(
 			notificationTemplate.id
 		);
@@ -331,6 +326,11 @@ test('LPD-4174 Sales agent can receive email notifications for new orders placed
 			roles.items[0].id,
 			user.id
 		);
+
+		const orders =
+			await apiHelpers.headlessCommerceAdminOrder.getOrdersPage();
+
+		apiHelpers.data.push({id: orders.items[0].id, type: 'order'});
 	}
 });
 
@@ -388,10 +388,8 @@ test('LPD-28683 When clicking on order item without visibility the user is not r
 	commerceLayoutsPage,
 	commerceMiniCartPage,
 	commerceThemeMiniumPage,
-	editUserPage,
 	page,
 	pendingOrdersPage,
-	usersAndOrganizationsPage,
 }) => {
 	const site = await apiHelpers.headlessSite.createSite({
 		name: 'Minium',
@@ -469,13 +467,14 @@ test('LPD-28683 When clicking on order item without visibility the user is not r
 			product.items[0].productId
 		);
 
-	await usersAndOrganizationsPage.goToUsers();
+	const siteRole =
+		await apiHelpers.headlessAdminUser.getRoleByName('Site Member');
 
-	await (
-		await usersAndOrganizationsPage.usersTableRowLink('demo.unprivileged')
-	).click();
-
-	await editUserPage.selectUserMembershipSite('Minium');
+	await apiHelpers.headlessAdminUser.assignUserToSite(
+		siteRole.id,
+		site.id,
+		user.id
+	);
 
 	await performLogout(page);
 
@@ -745,4 +744,112 @@ test('LPD-26906 As a buyer, I can edit product options from the pending orders p
 			user.id
 		);
 	}
+});
+
+test('LPD-3259 As a buyer with approval workflow, when I click review order in minicart, I get redirect to pending orders page', async ({
+	apiHelpers,
+	commerceAdminChannelDetailsPage,
+	commerceAdminChannelsPage,
+	commerceMiniCartPage,
+	page,
+	pendingOrdersPage,
+}) => {
+	const {site} = await miniumSetUp(apiHelpers);
+
+	const account = await apiHelpers.headlessAdminUser.postAccount({
+		name: getRandomString(),
+		type: 'business',
+	});
+
+	apiHelpers.data.push({id: account.id, type: 'account'});
+
+	const user =
+		await apiHelpers.headlessAdminUser.getUserAccountByEmailAddress(
+			'demo.unprivileged@liferay.com'
+		);
+	const rolesResponse = await apiHelpers.headlessAdminUser.getAccountRoles(
+		account.id
+	);
+
+	const accountRoleBuyer = rolesResponse?.items?.filter((role) => {
+		return role.name === 'Buyer';
+	});
+
+	await apiHelpers.headlessAdminUser.assignAccountRoles(
+		account.externalReferenceCode,
+		accountRoleBuyer[0].id,
+		user.emailAddress
+	);
+	await apiHelpers.headlessAdminUser.assignUserToAccountByEmailAddress(
+		account.id,
+		['demo.unprivileged@liferay.com']
+	);
+	const siteRole =
+		await apiHelpers.headlessAdminUser.getRoleByExternalReferenceCode(
+			'Site Member'
+		);
+	await apiHelpers.headlessAdminUser.assignUserToSite(
+		siteRole.id,
+		site.id,
+		user.id
+	);
+
+	const channels =
+		await apiHelpers.headlessCommerceAdminChannel.getChannelsPage(
+			`${site.name} Portal`
+		);
+
+	await commerceAdminChannelsPage.changeCommerceChannelBuyerOrderApprovalWorkflow(
+		'Single Approver (Version 1)',
+		channels.items[0].name
+	);
+
+	await (
+		await commerceAdminChannelDetailsPage.commerceChannelHealthChecksTableRowAction(
+			'Fix Issue',
+			'Commerce Cart'
+		)
+	).click();
+
+	const product = await apiHelpers.headlessCommerceAdminCatalog.getProducts(
+		new URLSearchParams({
+			filter: `name eq 'Abs Sensor'`,
+		})
+	);
+
+	const productId = product.items[0].productId;
+
+	const productSkus = await apiHelpers.headlessCommerceAdminCatalog
+		.getProduct(productId)
+		.then((product) => {
+			return product.skus;
+		});
+
+	const sku = productSkus[0];
+
+	await performLogout(page);
+
+	await performLogin(page, 'demo.unprivileged');
+
+	await apiHelpers.headlessCommerceDeliveryCart.postCart(
+		{
+			accountId: account.id,
+			cartItems: [
+				{
+					options: '[]',
+					quantity: 1,
+					replacedSkuId: 0,
+					skuId: sku.id,
+				},
+			],
+		},
+		channels.items[0].id
+	);
+
+	await page.goto(`/web/${site.name}`);
+
+	await commerceMiniCartPage.miniCartButton.click();
+	await commerceMiniCartPage.reviewOrderButton.click();
+
+	await expect(pendingOrdersPage.orderItemsTable).toBeVisible();
 });

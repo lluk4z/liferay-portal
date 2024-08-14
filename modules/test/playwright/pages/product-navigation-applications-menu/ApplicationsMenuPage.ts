@@ -19,8 +19,10 @@ export class ApplicationsMenuPage {
 	private readonly commerceDiscountsMenuItem: Locator;
 	private readonly commerceOrdersMenuItem: Locator;
 	private readonly commercePanelButton: Locator;
+	private readonly commerceReturnsMenuItem: Locator;
 	private readonly commerceSpecificationsMenuItem: Locator;
 	private readonly controlPanelButton: Locator;
+	private readonly customFieldsMenuItem: Locator;
 	private readonly dataMigrationCenterMenuItem: Locator;
 	private readonly dataSetManagerMenuItem: Locator;
 	private readonly defaultPermissionsLink: Locator;
@@ -90,12 +92,20 @@ export class ApplicationsMenuPage {
 		this.commercePanelButton = page.getByRole('tab', {
 			name: 'Commerce',
 		});
+		this.commerceReturnsMenuItem = page.getByRole('menuitem', {
+			exact: true,
+			name: 'Returns',
+		});
 		this.commerceSpecificationsMenuItem = page.getByRole('menuitem', {
 			exact: true,
 			name: 'Specifications',
 		});
 		this.controlPanelButton = page.getByRole('tab', {
 			name: 'Control Panel',
+		});
+		this.customFieldsMenuItem = page.getByRole('menuitem', {
+			exact: true,
+			name: 'Custom Fields',
 		});
 		this.gogoShellItem = page.getByRole('menuitem', {
 			exact: true,
@@ -237,6 +247,12 @@ export class ApplicationsMenuPage {
 		await this.clientExtensionsLink.click();
 	}
 
+	async goToCustomFields() {
+		await this.goto();
+		await this.controlPanelButton.click();
+		await this.customFieldsMenuItem.click();
+	}
+
 	async goToDataMigrationCenter() {
 		await this.goToApplicationsMenu();
 		await this.dataMigrationCenterMenuItem.click();
@@ -325,6 +341,11 @@ export class ApplicationsMenuPage {
 	async goToCommerceOrders(checkTabVisibility = true) {
 		await this.goToCommercePanel(checkTabVisibility);
 		await this.commerceOrdersMenuItem.click();
+	}
+
+	async goToCommerceReturns() {
+		await this.goToCommercePanel();
+		await this.commerceReturnsMenuItem.click();
 	}
 
 	async goToCommerceSpecifications() {

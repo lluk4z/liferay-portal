@@ -15,6 +15,11 @@ import {
 
 const namespace = getRandomInt();
 
+export const mdfClaimDataMock = {
+	companyName: 'Test Company ' + namespace,
+	submitDate: '2024-08-07T13:27:12.347Z',
+};
+
 export const mdfRequestMock = {
 	activities: [
 		{

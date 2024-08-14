@@ -49,6 +49,13 @@ export function getToControlsId(collectionId, index, toControlsId) {
 			return null;
 		}
 
+		// If the itemId correspond to a collectionId ignore it,
+		// that id is only applied to the children not to the collection itself.
+
+		if (collectionId === itemId) {
+			return itemId;
+		}
+
 		return toControlsId(
 			`${getCollectionPrefix(collectionId, index)}${itemId}`
 		);
@@ -56,6 +63,14 @@ export function getToControlsId(collectionId, index, toControlsId) {
 }
 
 export function fromControlsId(controlsItemId) {
+	const getItemIdFromControlsId = (id) => {
+		const splits = id.split(COLLECTION_ID_DIVIDER);
+
+		const itemId = splits.pop();
+
+		return itemId || id;
+	};
+
 	if (!controlsItemId) {
 		return null;
 	}
@@ -63,17 +78,10 @@ export function fromControlsId(controlsItemId) {
 		Liferay.FeatureFlags['LPD-18221'] &&
 		Array.isArray(controlsItemId)
 	) {
-
-		// todo: adapt collections for multiselect
-
-		return controlsItemId;
+		return controlsItemId.map(getItemIdFromControlsId);
 	}
 	else {
-		const splits = controlsItemId.split(COLLECTION_ID_DIVIDER);
-
-		const itemId = splits.pop();
-
-		return itemId || controlsItemId;
+		return getItemIdFromControlsId(controlsItemId);
 	}
 }
 
@@ -251,6 +259,7 @@ const ItemContext = ({
 	const contextValue = useMemo(
 		() => ({
 			collectionConfig,
+			collectionId,
 			collectionItem,
 			collectionItemIndex: index,
 			customCollectionSelectorURL,

@@ -29,19 +29,11 @@ public class PortalWorkspaceGitRepository extends BaseWorkspaceGitRepository {
 	public boolean bypassCITestRelevant() {
 		setUp();
 
-		Properties buildProperties = null;
-
-		try {
-			buildProperties = JenkinsResultsParserUtil.getBuildProperties(
-				false);
-		}
-		catch (IOException ioException) {
-			throw new RuntimeException(
-				"Unable to get build properties", ioException);
-		}
+		Properties testProperties = JenkinsResultsParserUtil.getProperties(
+			new File(getDirectory(), "test.properties"));
 
 		boolean relevantEngineEnabled = Boolean.parseBoolean(
-			buildProperties.getProperty("relevant.engine.enabled"));
+			testProperties.getProperty("relevant.engine.enabled"));
 
 		if (relevantEngineEnabled) {
 			RelevantTestSuite relevantTestSuite = new RelevantTestSuite(
@@ -49,11 +41,7 @@ public class PortalWorkspaceGitRepository extends BaseWorkspaceGitRepository {
 
 			List<TestBatch> testBatches = relevantTestSuite.getTestBatches();
 
-			if (testBatches.isEmpty()) {
-				return true;
-			}
-
-			return false;
+			return testBatches.isEmpty();
 		}
 
 		String ciTestRelevantBypassFilePathPatterns =

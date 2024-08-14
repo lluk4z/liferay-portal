@@ -3,87 +3,135 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import {
+	DEFAULT_IDP_CONNECTION_VALUES,
+	DEFAULT_SP_CONNECTION_VALUES,
+	TIdpConnection,
+	TSpConnection,
+} from '../../../helpers/SamlProviderConnectionHelper';
 import {liferayConfig} from '../../../liferay.config';
 import {IdentityProviderConnectionsPage} from '../../../pages/saml-web/IdentityProviderConnectionsPage';
 import {ServiceProviderConnectionsPage} from '../../../pages/saml-web/ServiceProviderConnectionsPage';
+import {performSamlSafeAdminLogin} from './samlVirtualInstanceUtil';
 
 const _DEFAULT_METADATA_PATH = '/c/portal/saml/metadata';
 
-async function addIdentityProviderConnection(
-	idpName: string,
-	page,
-	spDomain: string,
-	idpDomain = idpName,
-	idpEntityId = idpName
+export async function addIdentityProviderConnection(
+	idpConnection: TIdpConnection,
+	page
 ) {
 	const defaultBaseUrl = liferayConfig.environment.baseUrl;
 
-	liferayConfig.environment.baseUrl = `http://${spDomain}:8080`;
+	liferayConfig.environment.baseUrl = `http://${idpConnection.spName}:8080`;
 
 	const identityProviderConnectionsPage = new IdentityProviderConnectionsPage(
 		page
 	);
 
 	await identityProviderConnectionsPage.addIdentityProviderConnection(
-		`http://${idpDomain}:8080${_DEFAULT_METADATA_PATH}`,
-		idpName,
-		undefined,
-		undefined,
-		idpEntityId
+		idpConnection
 	);
 
 	liferayConfig.environment.baseUrl = defaultBaseUrl;
 }
 
-async function addServiceProviderConnection(
-	idpDomain: string,
-	page,
-	spName: string,
-	spDomain = spName,
-	spEntityId = spName
-) {
+async function addServiceProviderConnection(page, spConnection: TSpConnection) {
 	const defaultBaseUrl = liferayConfig.environment.baseUrl;
 
-	liferayConfig.environment.baseUrl = `http://${idpDomain}:8080`;
+	liferayConfig.environment.baseUrl = `http://${spConnection.idpName}:8080`;
 
 	const serviceProviderConnectionsPage = new ServiceProviderConnectionsPage(
 		page
 	);
 
 	await serviceProviderConnectionsPage.addServiceProviderConnection(
-		`http://${spDomain}:8080${_DEFAULT_METADATA_PATH}`,
-		spName,
-		undefined,
-		undefined,
-		undefined,
-		undefined,
-		undefined,
-		spEntityId
+		spConnection
 	);
 
 	liferayConfig.environment.baseUrl = defaultBaseUrl;
 }
 
 export async function connectSpAndIdp(
+	browser,
 	idpName: string,
 	page,
 	spName: string,
 	idpEntityId = idpName,
 	spEntityId = spName
 ) {
-	await addServiceProviderConnection(
+	const spConnection: TSpConnection = {
+		entityId: spEntityId,
 		idpName,
-		page,
+		metadataURL: `http://${spName}:8080${_DEFAULT_METADATA_PATH}`,
+		spDomain: `http://${spName}:8080`,
 		spName,
+		...DEFAULT_SP_CONNECTION_VALUES,
+	};
+
+	const defaultBaseUrl = liferayConfig.environment.baseUrl;
+
+	liferayConfig.environment.baseUrl = `http://${idpName}:8080`;
+
+	let newPage = await performSamlSafeAdminLogin(browser, idpName);
+
+	await addServiceProviderConnection(newPage, spConnection);
+
+	liferayConfig.environment.baseUrl = `http://${spName}:8080`;
+
+	newPage = await performSamlSafeAdminLogin(browser, spName);
+
+	const idpConnection: TIdpConnection = {
+		entityId: idpEntityId,
+		idpDomain: `http://${idpName}:8080`,
+		idpName,
+		metadataURL: `http://${idpName}:8080${_DEFAULT_METADATA_PATH}`,
 		spName,
-		spEntityId
+		...DEFAULT_IDP_CONNECTION_VALUES,
+	};
+
+	await addIdentityProviderConnection(idpConnection, newPage);
+
+	liferayConfig.environment.baseUrl = defaultBaseUrl;
+}
+
+export async function editIdentityProviderConnection(
+	browser,
+	idpConnection: TIdpConnection
+) {
+	const defaultBaseUrl = liferayConfig.environment.baseUrl;
+
+	liferayConfig.environment.baseUrl = `http://${idpConnection.spName}:8080`;
+
+	const page = await performSamlSafeAdminLogin(browser, idpConnection.spName);
+
+	const identityProviderConnectionsPage = new IdentityProviderConnectionsPage(
+		page
 	);
 
-	await addIdentityProviderConnection(
-		idpName,
-		page,
-		spName,
-		idpName,
-		idpEntityId
+	await identityProviderConnectionsPage.editIdentityProviderConnection(
+		idpConnection
 	);
+
+	liferayConfig.environment.baseUrl = defaultBaseUrl;
+}
+
+export async function editServiceProviderConnection(
+	browser,
+	spConnection: TSpConnection
+) {
+	const defaultBaseUrl = liferayConfig.environment.baseUrl;
+
+	liferayConfig.environment.baseUrl = `http://${spConnection.idpName}:8080`;
+
+	const page = await performSamlSafeAdminLogin(browser, spConnection.idpName);
+
+	const serviceProviderConnectionsPage = new ServiceProviderConnectionsPage(
+		page
+	);
+
+	await serviceProviderConnectionsPage.editServiceProviderConnection(
+		spConnection
+	);
+
+	liferayConfig.environment.baseUrl = defaultBaseUrl;
 }

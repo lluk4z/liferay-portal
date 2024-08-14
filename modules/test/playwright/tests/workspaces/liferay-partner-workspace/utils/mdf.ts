@@ -5,11 +5,15 @@
 
 import moment from 'moment';
 
-import {mdfRequestDataMock, mdfRequestMock} from '../mocks/mdfMock';
+import {
+	mdfClaimDataMock,
+	mdfRequestDataMock,
+	mdfRequestMock,
+} from '../mocks/mdfMock';
 import {TAccount} from '../types/account';
-import {TMDFRequest, TMDFRequestDataFromRequest} from '../types/mdf';
+import {TMDFClaim, TMDFRequest, TMDFRequestDataFromRequest} from '../types/mdf';
 
-export function generateMDFRequestDataForm(
+export function generateMDFRequestFormData(
 	parnterAccount: TAccount
 ): TMDFRequest {
 	const mdfRequest = mdfRequestMock;
@@ -26,7 +30,16 @@ export function generateMDFRequestDataForm(
 	return mdfRequest;
 }
 
-export function generatedDataFromRequest(
+export function getGeneratedDataFromClaim(parnterAccount: TAccount): TMDFClaim {
+	const mdfClaimData = mdfClaimDataMock;
+
+	mdfClaimData.companyName = parnterAccount.name;
+	mdfClaimData.submitDate = new Date().toISOString();
+
+	return mdfClaimData;
+}
+
+export function getGeneratedDataFromRequest(
 	parnterAccount: TAccount
 ): TMDFRequestDataFromRequest {
 	const mdfRequestData = mdfRequestDataMock;

@@ -6,17 +6,36 @@
 import {expect, mergeTests} from '@playwright/test';
 
 import {loginTest} from '../../fixtures/loginTest';
-import {samlAdminPagesTest} from '../../fixtures/samlAdminPagesTest';
+import {searchAdminPageTest} from '../../fixtures/searchAdminPageTest';
+import {usersAndOrganizationsPagesTest} from '../../fixtures/usersAndOrganizationsPagesTest';
 import {virtualInstancesPagesTest} from '../../fixtures/virtualInstancesPagesTest';
+import {TCustomField, TInputField} from '../../helpers/CustomFieldTypesHelper';
+import {
+	DEFAULT_IDP_CONNECTION_VALUES,
+	DEFAULT_SP_CONNECTION_VALUES,
+	TIdpConnection,
+	TSpConnection,
+} from '../../helpers/SamlProviderConnectionHelper';
+import {liferayConfig} from '../../liferay.config';
+import {AttributeMapping} from '../../pages/saml-web/IdentityProviderConnectionsPage';
+import {EditUserPage} from '../../pages/users-admin-web/EditUserPage';
+import {UsersAndOrganizationsPage} from '../../pages/users-admin-web/UsersAndOrganizationsPage';
+import {getRandomInt} from '../../utils/getRandomInt';
 import getRandomString from '../../utils/getRandomString';
 import {performLogout} from '../../utils/performLogin';
+import {
+	editIdentityProviderConnection,
+	editServiceProviderConnection,
+} from './utils/samlProviderConnectionUtil';
 import {
 	DEFAULT_IDP_NAME,
 	DEFAULT_IDP_URL,
 	DEFAULT_SP_NAME,
 	DEFAULT_SP_URL,
-	createSpAndIdpUser,
+	createCustomField,
+	createIdpUser,
 	deleteVirtualInstance,
+	performSamlSafeAdminLogin,
 	resetSamlKeystoreManagerTarget,
 	setupSamlInstances,
 	updateSamlKeystoreManagerTarget,
@@ -24,7 +43,8 @@ import {
 
 export const test = mergeTests(
 	loginTest(),
-	samlAdminPagesTest,
+	searchAdminPageTest,
+	usersAndOrganizationsPagesTest,
 	virtualInstancesPagesTest
 );
 
@@ -41,23 +61,17 @@ test('Create two virtual instances, one IdP and one SP, connect them, perform SP
 		'Document Library Keystore Manager'
 	);
 
-	await setupSamlInstances(page, undefined, undefined);
+	await setupSamlInstances(browser, page);
 
 	// Create a user with identical credentials on each instance
 
-	const userAccount = await createSpAndIdpUser(
-		browser,
-		DEFAULT_IDP_NAME,
-		DEFAULT_SP_NAME
-	);
+	const userAccount = await createIdpUser(browser, DEFAULT_IDP_NAME);
 
-	// Create new page on SP virtual instance
+	// Perform SP initiated SSO
 
 	const spInstancePage = await browser.newPage({
 		baseURL: DEFAULT_SP_URL,
 	});
-
-	// Login as the new user from SP
 
 	await spInstancePage.goto('/');
 
@@ -69,15 +83,15 @@ test('Create two virtual instances, one IdP and one SP, connect them, perform SP
 
 	// Verify user is redirected to the IdP instance
 
-	expect(
-		await spInstancePage.getByText(
-			'Redirecting to your identity provider...'
-		)
-	).toBeVisible();
+	await spInstancePage
+		.getByText('Redirecting to your identity provider...')
+		.waitFor({timeout: 30 * 1000});
 
-	// Wait a few seconds for redirection, otherwise the expect clause will fail
+	// Wait for redirection to complete, otherwise the expect clause will fail
 
-	await spInstancePage.waitForTimeout(4000);
+	await spInstancePage
+		.getByLabel('Email Address')
+		.waitFor({timeout: 30 * 1000});
 
 	// Verify user has been successfully redirected
 
@@ -94,27 +108,35 @@ test('Create two virtual instances, one IdP and one SP, connect them, perform SP
 
 	// Wait for authentication to complete, verify user is redirected back to SP
 
-	await spInstancePage.waitForTimeout(4000);
+	await spInstancePage
+		.getByTitle('User Profile Menu')
+		.waitFor({timeout: 30 * 1000});
 
 	expect(await spInstancePage.url()).toContain(DEFAULT_SP_URL);
 
-	// Verify user is logged in
+	// Verify user has been imported to SP and logged in
 
-	await expect(await page.getByTitle('User Profile Menu')).toBeVisible();
+	await expect(
+		await spInstancePage.getByTitle('User Profile Menu')
+	).toBeVisible();
 
-	// Logout, verify user is also logged out of IdP
+	// Perform SP initiated SLO
 
 	await performLogout(spInstancePage);
 
-	expect(
+	await spInstancePage.waitForTimeout(8000);
+
+	// Verify user has been logged out of SP and IdP
+
+	await expect(
 		await spInstancePage.getByRole('button', {name: 'Sign In'})
 	).toBeVisible();
 
 	await spInstancePage.goto(DEFAULT_IDP_URL);
 
-	expect(
-		await spInstancePage.getByRole('button', {name: 'Sign In'})
-	).toBeVisible();
+	await spInstancePage
+		.getByRole('button', {name: 'Sign In'})
+		.waitFor({timeout: 30 * 1000});
 
 	// Lastly, delete both virtual instances and reset the keystore target
 
@@ -127,6 +149,7 @@ test('Create two virtual instances, one IdP and one SP, connect them, perform SP
 
 test('Create, edit, and delete a new virtual instance', async ({
 	editVirtualInstancePage,
+	searchAdminPage,
 	virtualInstancesPage,
 }) => {
 	const name = getRandomString();
@@ -143,6 +166,16 @@ test('Create, edit, and delete a new virtual instance', async ({
 		newName
 	);
 
+	// Reindex users so the correct number is present
+
+	await searchAdminPage.goto();
+
+	await searchAdminPage.goToIndexActionsTab();
+
+	await searchAdminPage.reindexIndexActionsItem('User');
+
+	await virtualInstancesPage.goto();
+
 	expect(
 		await virtualInstancesPage.page
 			.getByRole('row')
@@ -150,4 +183,161 @@ test('Create, edit, and delete a new virtual instance', async ({
 	).toBeVisible();
 
 	await virtualInstancesPage.deleteVirtualInstance(name);
+});
+
+test('Create two virtual instances, one IdP and one SP, and verify Custom User Attributes', async ({
+	browser,
+	editUserPage,
+	page,
+	searchAdminPage,
+	usersAndOrganizationsPage,
+}) => {
+
+	// Set the Keystore Manager Target to Doc Lib, so we can store multiple
+	// certificates in one instance
+
+	await updateSamlKeystoreManagerTarget(
+		page,
+		'Document Library Keystore Manager'
+	);
+
+	await setupSamlInstances(browser, page);
+
+	// Create identical Custom Fields for both instances, except starting value
+
+	const customFieldName = 'CustomField' + getRandomInt();
+
+	const fieldValues: TInputField = {
+		startingValue: 'idpStartingValue',
+	};
+
+	const customField: TCustomField = {
+		fieldName: customFieldName,
+		fieldType: 'inputField',
+		fieldValues,
+		resource: 'User',
+	};
+
+	await createCustomField(browser, customField, DEFAULT_IDP_NAME);
+
+	fieldValues.startingValue = 'spStartingValue';
+
+	customField.fieldValues = fieldValues;
+
+	await createCustomField(browser, customField, DEFAULT_SP_NAME);
+
+	// Edit IdP Connection to include User Custom Field attribute mapping
+
+	const attributeMappings: AttributeMapping[] = [
+		{
+			attributeMappingType: 'User Custom Fields',
+			samlAttribute: customFieldName,
+			userFieldExpression: customFieldName,
+		},
+	];
+
+	const idpConnection: TIdpConnection = {
+		attributeMappings,
+		entityId: DEFAULT_IDP_NAME,
+		idpDomain: `http://${DEFAULT_IDP_NAME}:8080`,
+		idpName: DEFAULT_IDP_NAME,
+		spName: DEFAULT_SP_NAME,
+		...DEFAULT_IDP_CONNECTION_VALUES,
+	};
+
+	await editIdentityProviderConnection(browser, idpConnection);
+
+	// Edit SP Connection to include User Custom Field attribute
+
+	const spConnection: TSpConnection = {
+		entityId: DEFAULT_SP_NAME,
+		idpName: DEFAULT_IDP_NAME,
+		spDomain: `http://${DEFAULT_SP_NAME}:8080`,
+		spName: DEFAULT_SP_NAME,
+		...DEFAULT_SP_CONNECTION_VALUES,
+	};
+
+	spConnection.attributes =
+		spConnection.attributes + `\nexpando:${customFieldName}`;
+
+	await editServiceProviderConnection(browser, spConnection);
+
+	// Create a user on the IdP instance
+
+	const userAccount = await createIdpUser(browser, DEFAULT_IDP_NAME);
+
+	// Perform SSO with the new user
+
+	let spInstancePage = await browser.newPage({
+		baseURL: DEFAULT_SP_URL,
+	});
+
+	await spInstancePage.goto('/');
+
+	const signInButton = await spInstancePage.getByRole('button', {
+		name: 'Sign In',
+	});
+
+	await signInButton.click();
+
+	await spInstancePage
+		.getByLabel('Email Address')
+		.waitFor({timeout: 30 * 1000});
+
+	await spInstancePage
+		.getByLabel('Email Address')
+		.fill(userAccount.emailAddress);
+	await spInstancePage.getByLabel('Password').fill('test');
+	await spInstancePage.getByLabel('Remember Me').check();
+	await spInstancePage.getByRole('button', {name: 'Sign In'}).click();
+
+	await spInstancePage
+		.getByTitle('User Profile Menu')
+		.waitFor({timeout: 30 * 1000});
+
+	await performLogout(spInstancePage);
+
+	// Perform reindex on User object
+
+	await searchAdminPage.goto();
+
+	await searchAdminPage.goToIndexActionsTab();
+
+	await searchAdminPage.reindexIndexActionsItem('User');
+
+	// Login to SP as admin, verify user custom field was imported properly
+
+	const defaultBaseUrl = liferayConfig.environment.baseUrl;
+
+	liferayConfig.environment.baseUrl = DEFAULT_SP_URL;
+
+	spInstancePage = await performSamlSafeAdminLogin(browser, DEFAULT_SP_NAME);
+
+	usersAndOrganizationsPage = await new UsersAndOrganizationsPage(
+		spInstancePage
+	);
+
+	await usersAndOrganizationsPage.goToUsers(false);
+
+	await (
+		await usersAndOrganizationsPage.usersTableRowLink(
+			userAccount.alternateName
+		)
+	).click();
+
+	editUserPage = await new EditUserPage(spInstancePage);
+
+	await expect(await editUserPage.customField(customFieldName)).toHaveValue(
+		'idpStartingValue'
+	);
+
+	liferayConfig.environment.baseUrl = defaultBaseUrl;
+
+	// Lastly, delete both virtual instances and reset the keystore target
+
+	await deleteVirtualInstance(DEFAULT_IDP_NAME, page);
+
+	await deleteVirtualInstance(DEFAULT_SP_NAME, page);
+
+	await resetSamlKeystoreManagerTarget(page);
 });

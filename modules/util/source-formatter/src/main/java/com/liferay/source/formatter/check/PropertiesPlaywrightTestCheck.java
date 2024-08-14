@@ -98,13 +98,18 @@ public class PropertiesPlaywrightTestCheck extends BaseFileCheck {
 				return content;
 			}
 
-			File file = new File(testPropertiesFileNames.get(0));
+			String testPropertiesFileName = testPropertiesFileNames.get(0);
+
+			File file = new File(testPropertiesFileName);
 
 			if (!file.exists()) {
+				int x = testPropertiesFileName.indexOf("/modules/");
+				int y = testPropertiesFileName.lastIndexOf(StringPool.SLASH);
+
 				addMessage(
 					fileName,
-					"Missing test.properties for module '" + moduleName +
-						"' in modules");
+					"Missing test.properties in " +
+						testPropertiesFileName.substring(x + 1, y));
 			}
 		}
 
@@ -136,22 +141,41 @@ public class PropertiesPlaywrightTestCheck extends BaseFileCheck {
 
 			properties.load(new StringReader(content));
 
-			List<String> playwrightTestProjectList = ListUtil.fromString(
-				properties.getProperty(_PLAYWRIGHT_TEST_PROJECT_NAME),
-				StringPool.COMMA);
+			List<String> relevantRuleNames = ListUtil.fromString(
+				properties.getProperty(_RELEVANT_RULE_NAMES), StringPool.COMMA);
 
-			if (ListUtil.isEmpty(playwrightTestProjectList)) {
+			if (ListUtil.isEmpty(relevantRuleNames)) {
 				addMessage(
 					fileName,
-					"Missing property '" + _PLAYWRIGHT_TEST_PROJECT_NAME +
-						"' in test.properties");
+					"Missing property '" + _RELEVANT_RULE_NAMES +
+						"' in test.properties for Playwright tests");
+
+				return content;
 			}
-			else if (!playwrightTestProjectList.contains(moduleName)) {
-				addMessage(
-					fileName,
-					StringBundler.concat(
-						"Missing property value '", moduleName, "' in '",
-						_PLAYWRIGHT_TEST_PROJECT_NAME, "'"));
+
+			for (String relevantRuleName : relevantRuleNames) {
+				String playwrightTestProjectPropertyName = StringBundler.concat(
+					"playwright.test.project[playwright-js-tomcat90-mysql57-",
+					"jdk8][relevant][", relevantRuleName, "]");
+
+				List<String> playwrightTestProjectList = ListUtil.fromString(
+					properties.getProperty(playwrightTestProjectPropertyName),
+					StringPool.COMMA);
+
+				if (ListUtil.isEmpty(playwrightTestProjectList)) {
+					addMessage(
+						fileName,
+						"Missing property '" +
+							playwrightTestProjectPropertyName +
+								"' in test.properties");
+				}
+				else if (!playwrightTestProjectList.contains(moduleName)) {
+					addMessage(
+						fileName,
+						StringBundler.concat(
+							"Missing property value '", moduleName, "' in '",
+							playwrightTestProjectPropertyName, "'"));
+				}
 			}
 		}
 
@@ -230,9 +254,7 @@ public class PropertiesPlaywrightTestCheck extends BaseFileCheck {
 		return _testrayAllTeamsComponentNames;
 	}
 
-	private static final String _PLAYWRIGHT_TEST_PROJECT_NAME =
-		"playwright.test.project[playwright-js-tomcat90-mysql57-jdk8]" +
-			"[relevant]";
+	private static final String _RELEVANT_RULE_NAMES = "relevant.rule.names";
 
 	private static final String _TESTRAY_MAIN_COMPONENT_NAME =
 		"testray.main.component.name";
