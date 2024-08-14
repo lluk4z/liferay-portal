@@ -667,6 +667,7 @@ public class Main {
 		for (String part : parts) {
 			if (StringUtil.equalsIgnoreCase(part, "en") ||
 				StringUtil.equalsIgnoreCase(part, "ja") ||
+				StringUtil.equalsIgnoreCase(part, "ko") ||
 				StringUtil.equalsIgnoreCase(part, "latest")) {
 
 				continue;
@@ -1520,6 +1521,158 @@ public class Main {
 
 		File japaneseFile = new File(
 			StringUtil.replace(fileName, "/en/", "/ja/"));
+
+		File koreanFile = new File(
+			StringUtil.replace(fileName, "/en/", "/ko/"));
+
+		if (koreanFile.exists()) {
+				String koreanText = FileUtils.readFileToString(
+					koreanFile, StandardCharsets.UTF_8);
+	
+				structuredContent.setContentFields(
+					() -> new ContentField[] {
+						new ContentField() {
+							{
+								setContentFieldValue(
+									() -> englishContentContentFieldValue);
+								setContentFieldValue_i18n(
+									() -> HashMapBuilder.put(
+										"en-US", englishContentContentFieldValue
+									).put(
+										"ko-KR",
+										new ContentFieldValue() {
+											{
+												setData(
+													() -> _getHTML(koreanFile));
+											}
+										}
+									).build());
+								setName(() -> "content");
+							}
+						},
+						new ContentField() {
+							{
+								setContentFieldValue(
+									() -> englishMD5HexContentFieldValue);
+								setContentFieldValue_i18n(
+									() -> HashMapBuilder.put(
+										"en-US", englishMD5HexContentFieldValue
+									).put(
+										"ko-KR",
+										new ContentFieldValue() {
+											{
+												setData(
+													() -> DigestUtils.md5Hex(
+														new FileInputStream(
+															koreanFile)));
+											}
+										}
+									).build());
+								setName(() -> "md5Hex");
+							}
+						},
+						new ContentField() {
+							{
+								setContentFieldValue(
+									() -> englishNavigationContentFieldValue);
+								setContentFieldValue_i18n(
+									() -> HashMapBuilder.put(
+										"en-US", englishNavigationContentFieldValue
+									).put(
+										"ko-KR",
+										new ContentFieldValue() {
+											{
+												setData(
+													() -> String.valueOf(
+														_getNavigationJSONObject(
+															koreanFile)));
+											}
+										}
+									).build());
+								setName(() -> "navigation");
+							}
+						},
+						new ContentField() {
+							{
+								setContentFieldValue(
+									() ->
+										englishShowChildrenCardsContentFieldValue);
+								setContentFieldValue_i18n(
+									() -> HashMapBuilder.put(
+										"en-US",
+										englishShowChildrenCardsContentFieldValue
+									).put(
+										"ko-KR",
+										new ContentFieldValue() {
+											{
+												setData(
+													() -> String.valueOf(
+														_isShowChildrenCards(
+															koreanFile)));
+											}
+										}
+									).build());
+								setName(() -> "showChildrenCards");
+							}
+						}
+					});
+				structuredContent.setDescription_i18n(
+					() -> HashMapBuilder.put(
+						"en-US", _getDescription(englishText)
+					).put(
+						"ko-KR", _getDescription(koreanText)
+					).build());
+	
+				structuredContent.setFriendlyUrlPath_i18n(
+					() -> HashMapBuilder.put(
+						"en-US", _toFriendlyURLPath(englishFile)
+					).put(
+						"ko-KR", _toFriendlyURLPath(koreanFile)
+					).build());
+				structuredContent.setTitle_i18n(
+					() -> HashMapBuilder.put(
+						"en-US", englishTitle
+					).put(
+						"ko-KR", _getTitle(koreanText)
+					).build());
+			}
+			else {
+				structuredContent.setContentFields(
+					() -> new ContentField[] {
+						new ContentField() {
+							{
+								setContentFieldValue(
+									() -> englishContentContentFieldValue);
+								setName(() -> "content");
+							}
+						},
+						new ContentField() {
+							{
+								setContentFieldValue(
+									() -> englishMD5HexContentFieldValue);
+								setName(() -> "md5Hex");
+							}
+						},
+						new ContentField() {
+							{
+								setContentFieldValue(
+									() -> englishNavigationContentFieldValue);
+								setName(() -> "navigation");
+							}
+						},
+						new ContentField() {
+							{
+								setContentFieldValue(
+									() ->
+										englishShowChildrenCardsContentFieldValue);
+								setName(() -> "showChildrenCards");
+							}
+						}
+					});
+				structuredContent.setDescription(
+					() -> _getDescription(englishText));
+		}
+		
 
 		if (japaneseFile.exists()) {
 			String japaneseText = FileUtils.readFileToString(

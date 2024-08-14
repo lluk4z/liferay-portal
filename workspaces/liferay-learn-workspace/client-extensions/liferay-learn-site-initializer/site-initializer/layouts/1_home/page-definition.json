@@ -275,7 +275,8 @@
 														"href": {
 															"value_i18n": {
 																"en_US": "/capabilities/cloud",
-																"ja_JP": "/capabilities/cloud"
+																"ja_JP": "/capabilities/cloud",
+																"ko_KR": "/capabilities/cloud"
 															}
 														}
 													},
@@ -429,7 +430,8 @@
 														"href": {
 															"value_i18n": {
 																"en_US": "/capabilities/commerce",
-																"ja_JP": "/capabilities/commerce"
+																"ja_JP": "/capabilities/commerce",
+																"ko_KR": "/capabilities/commerce"
 															}
 														}
 													},
@@ -578,7 +580,8 @@
 														"href": {
 															"value_i18n": {
 																"en_US": "/capabilities/content-management-system",
-																"ja_JP": "/capabilities/content-management-system"
+																"ja_JP": "/capabilities/content-management-system",
+																"ko_KR": "/capabilities/content-management-system"
 															}
 														}
 													},
@@ -727,7 +730,8 @@
 														"href": {
 															"value_i18n": {
 																"en_US": "/capabilities/development-and-tooling",
-																"ja_JP": "/capabilities/development-and-tooling"
+																"ja_JP": "/capabilities/development-and-tooling",
+																"ko_KR": "/capabilities/development-and-tooling"
 															}
 														}
 													},
@@ -876,7 +880,8 @@
 														"href": {
 															"value_i18n": {
 																"en_US": "/capabilities/digital-asset-management",
-																"ja_JP": "/capabilities/digital-asset-management"
+																"ja_JP": "/capabilities/digital-asset-management",
+																"ko_KR": "/capabilities/digital-asset-management"
 															}
 														}
 													},
@@ -1025,7 +1030,8 @@
 														"href": {
 															"value_i18n": {
 																"en_US": "/capabilities/dxp-self-hosted-installation-maintenance-and-administration",
-																"ja_JP": "/capabilities/dxp-self-hosted-installation-maintenance-and-administration"
+																"ja_JP": "/capabilities/dxp-self-hosted-installation-maintenance-and-administration",
+																"ko_KR": "/capabilities/dxp-self-hosted-installation-maintenance-and-administration"
 															}
 														}
 													},
@@ -1174,7 +1180,8 @@
 														"href": {
 															"value_i18n": {
 																"en_US": "/capabilities/integration",
-																"ja_JP": "/capabilities/integration"
+																"ja_JP": "/capabilities/integration",
+																"ko_KR": "/capabilities/integration"
 															}
 														}
 													},
@@ -1323,7 +1330,8 @@
 														"href": {
 															"value_i18n": {
 																"en_US": "/capabilities/personalization",
-																"ja_JP": "/capabilities/personalization"
+																"ja_JP": "/capabilities/personalization",
+																"ko_KR": "/capabilities/personalization"
 															}
 														}
 													},
@@ -1472,7 +1480,8 @@
 														"href": {
 															"value_i18n": {
 																"en_US": "/capabilities/platform",
-																"ja_JP": "/capabilities/platform"
+																"ja_JP": "/capabilities/platform",
+																"ko_KR": "/capabilities/platform"
 															}
 														}
 													},
@@ -1621,7 +1630,8 @@
 														"href": {
 															"value_i18n": {
 																"en_US": "/capabilities/search",
-																"ja_JP": "/capabilities/search"
+																"ja_JP": "/capabilities/search",
+																"ko_KR": "/capabilities/search"
 															}
 														}
 													},
@@ -1770,7 +1780,8 @@
 														"href": {
 															"value_i18n": {
 																"en_US": "/capabilities/security",
-																"ja_JP": "/capabilities/security"
+																"ja_JP": "/capabilities/security",
+																"ko_KR": "/capabilities/security"
 															}
 														}
 													},
@@ -1919,7 +1930,8 @@
 														"href": {
 															"value_i18n": {
 																"en_US": "/capabilities/sites",
-																"ja_JP": "/capabilities/sites"
+																"ja_JP": "/capabilities/sites",
+																"ko_KR": "/capabilities/sites"
 															}
 														}
 													},
@@ -2110,7 +2122,8 @@
 																"href": {
 																	"value_i18n": {
 																		"en_US": "/w/analytics-cloud/index",
-																		"ja_JP": "/w/analytics-cloud/index"
+																		"ja_JP": "/w/analytics-cloud/index",
+																		"ko_KR": "/w/analytics-cloud/index"
 																	}
 																}
 															},
@@ -2259,7 +2272,8 @@
 																"href": {
 																	"value_i18n": {
 																		"en_US": "/w/commerce/index",
-																		"ja_JP": "/w/commerce/index"
+																		"ja_JP": "/w/commerce/index",
+																		"ko_KR": "/w/commerce/index"
 																	}
 																}
 															},
@@ -2408,7 +2422,8 @@
 																"href": {
 																	"value_i18n": {
 																		"en_US": "/w/dxp/index",
-																		"ja_JP": "/w/dxp/index"
+																		"ja_JP": "/w/dxp/index",
+																		"ko_KR": "/w/dxp/index"
 																	}
 																}
 															},
@@ -2557,7 +2572,8 @@
 																"href": {
 																	"value_i18n": {
 																		"en_US": "/w/liferay-cloud/index",
-																		"ja_JP": "/w/liferay-cloud/index"
+																		"ja_JP": "/w/liferay-cloud/index",
+																		"ko_KR": "/w/liferay-cloud/index"
 																	}
 																}
 															},
@@ -2706,7 +2722,8 @@
 																"href": {
 																	"value_i18n": {
 																		"en_US": "/w/reference/index",
-																		"ja_JP": "/w/reference/index"
+																		"ja_JP": "/w/reference/index",
+																		"ko_KR": "/w/reference/index"
 																	}
 																}
 															},
